@@ -1,65 +1,110 @@
-import React from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Pressable, Alert } from 'react-native'
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
-import { toggleDelete } from '../redux/reducer/User';
-import { deleteExpense } from '../redux/reducer/User';
-import { useDispatch, useSelector } from 'react-redux'
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Pressable, Alert } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useDispatch, useSelector } from 'react-redux';
+import { toggleDelete, deleteExpense } from '../redux/reducer/User';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Modal from "react-native-modal";
 
-const DisplayScreen = (props) => {
-  // const { detail, price } = props.expenseList
-  const { expenseData, isDelete } = useSelector(state => state.User)
+
+const DisplayScreen = ({ updateTotalExpense, dateKey, expenses, setExpense }) => {
+  const [modalVisible, setModalVisible] = useState(false);
+  const [isDelete, setIsDelete] = useState(false);
+
+
+  // const { isDelete } = useSelector(state => state.User);
   const dispatch = useDispatch();
 
-  const handleDelete = () => {
-    dispatch(toggleDelete())
-  }
+  useEffect(() => { setIsDelete(false); }, [dateKey]);
 
-  const deleteExpense1 = (index) => {
-    dispatch(deleteExpense(index))
-  }
+  const handleDelete = () => {
+    // dispatch(toggleDelete());
+    setIsDelete(!isDelete);
+
+  };
+
+  const deleteExpenseItem = async (index) => {
+    try {
+      const storedExpenses = await AsyncStorage.getItem(dateKey);
+      if (storedExpenses !== null) {
+        const expensesArray = JSON.parse(storedExpenses);
+        expensesArray.splice(index, 1);
+        await AsyncStorage.setItem(dateKey, JSON.stringify(expensesArray));
+        updateTotalExpense(expensesArray);
+        setExpense(expensesArray)
+        dispatch(deleteExpense(index));
+        setModalVisible(true)
+        // Alert.alert('Deleted Successfully!!!')
+      }
+    } catch (error) {
+      console.log('Delete Expense Item : ', error);
+    }
+  };
+
   const renderItem = ({ item, index }) => {
     return (
       <View style={styles.expenseItem}>
         <Text style={styles.itemText}>{item.detail}</Text>
-        <Text style={styles.itemText}>{item.price.toFixed(2)}
+        <View style={styles.priceContainer}>
+          <Text style={styles.itemText}>{item.price.toFixed(2)}</Text>
           {isDelete ? (
-            <Pressable onPress={() => deleteExpense1(index)}>
-              <MaterialCommunityIcons name='delete' size={20} color={'red'} />
-            </Pressable>
-          ) : ''}
-        </Text>
+            <TouchableOpacity onPress={() => deleteExpenseItem(index)} style={styles.deleteIconContainer}>
+              <MaterialCommunityIcons name='delete' size={26} color={'red'} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
       </View>
-    )
-  }
+    );
+  };
+
 
   return (
-    <View style={{ flex: 1, }}>
+    <View style={{ flex: 1 }}>
       <View style={{ marginHorizontal: 15, justifyContent: 'space-between', alignItems: 'center', flexDirection: 'row' }}>
-        <Text style={{ color: 'darkgreen', justifyContent: 'flex-start' }}>{expenseData.length} Item(s)</Text>
-
+        <Text style={{ color: 'darkgreen', justifyContent: 'flex-start' }}>{expenses.length} Item(s)</Text>
         <TouchableOpacity
           style={[
             styles.deleteButton,
-            isDelete ? { backgroundColor: 'red' } : { backgroundColor: '#4CAF50' },
-            { opacity: expenseData.length === 0 ? 0.5 : 1 } // Adjust opacity based on data
+            { backgroundColor: expenses.length === 0 ? '#4CAF50' : isDelete ? 'red' : '#4CAF50' },
+            { opacity: expenses.length === 0 ? 0.5 : 1 }
           ]}
           onPress={handleDelete}
-          disabled={expenseData.length === 0}
+          disabled={expenses.length === 0}
         >
           <Text style={styles.deleteButtonText}>Delete</Text>
         </TouchableOpacity>
       </View>
       <FlatList
-        data={expenseData}
-        keyExtractor={(item, index) => (index.toString())}  // Using index as a key
-        renderItem={renderItem}
         style={styles.list}
+        data={expenses}
+        keyExtractor={(item, index) => index.toString()}
+        renderItem={renderItem}
       />
-    </View >
-  )
-}
+      <Modal
 
-export default DisplayScreen;
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => {
+
+          setModalVisible(false);
+        }}>
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <Text style={styles.modalText}>Item Deleted Successfully!!</Text>
+            <Pressable
+              style={[styles.button, styles.buttonClose]}
+              onPress={() => setModalVisible(!modalVisible)}>
+              <Text style={styles.textStyle}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   deleteButton: {
     paddingHorizontal: 20,
@@ -68,7 +113,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    marginTop: 10
+    marginTop: 10,
   },
   deleteButtonText: {
     color: 'white',
@@ -76,6 +121,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Roboto',
   },
   expenseItem: {
+
     marginHorizontal: 15,
     marginTop: 10,
     justifyContent: 'space-between',
@@ -93,4 +139,51 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: 10,
   },
-})
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteIconContainer: {
+    marginLeft: 10,
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: '#ccffb3',
+    borderRadius: 20,
+    padding: 35,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  button: {
+    borderRadius: 20,
+    padding: 10,
+    elevation: 2,
+  },
+  buttonOpen: {
+    backgroundColor: '#F194FF',
+  },
+  buttonClose: {
+    backgroundColor: 'darkgreen',
+  },
+  textStyle: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  modalText: {
+    marginBottom: 15,
+    textAlign: 'center',
+    color: 'darkgreen',
+    fontWeight: 'bold',
+    fontSize: 20,
+  },
+});
+
+export default DisplayScreen;

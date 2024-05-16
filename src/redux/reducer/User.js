@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 export const expenseSlice = createSlice({
   name: 'expenseData',
@@ -8,17 +8,17 @@ export const expenseSlice = createSlice({
   },
   reducers: {
     addExp: (state, action) => {
-      state.expenseData.push(action.payload);
+      state.expenseData.push(action.payload)
     },
-    toggleDelete: (state) => {
-      state.isDelete = !state.isDelete
-    },
+    // toggleDelete: (state) => {
+    //   state.isDelete = !state.isDelete;
+    // },
     deleteExpense: (state, action) => {
-      state.expenseData = state.expenseData.filter((data, index) => index !== action.payload)
+      state.expenseData = state.expenseData.filter((data, index) => index !== action.payload);
     },
-    resetExpenses: (state) => {
-      state.expenseData = [];
-    },
+    // resetExpenses: (state) => {
+    //   state.expenseData = [];
+    // },
   }
 });
 
