@@ -32,7 +32,7 @@ const DisplayScreen = ({ updateTotalExpense, dateKey, expenses, setExpense }) =>
         await AsyncStorage.setItem(dateKey, JSON.stringify(expensesArray));
         updateTotalExpense(expensesArray);
         setExpense(expensesArray)
-        dispatch(deleteExpense(index));
+        // dispatch(deleteExpense(index));
         setModalVisible(true)
         // Alert.alert('Deleted Successfully!!!')
       }
